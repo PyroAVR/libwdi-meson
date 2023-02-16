@@ -1,0 +1,47 @@
+option('libusbk_path',
+    type: 'string',
+    value: '',
+    description: 'path to libusbk driver, leave blank to skip'
+)
+
+option('libusb0_path',
+    type: 'string',
+    value: '',
+    description: 'path to libusb0 driver, leave blank to skip'
+)
+
+option('winusb_path',
+    type: 'string',
+    value: '',
+    description: 'path to winusb driver, leave blank to skip'
+)
+
+option('wdk_x64_path',
+    type: 'combo',
+    choices: ['x64', 'amd64'],
+    value: 'x64',
+    description: 'path to winusb coinstaller for x64 targets'
+)
+
+option('user_path',
+    type: 'string',
+    value: '',
+    description: 'path to a custom driver, leave blank to skip'
+)
+
+option('wdf_ver',
+    type: 'integer',
+    value: 1011
+)
+
+option('logging',
+    type: 'boolean',
+    value: false,
+    description: 'enable logging from libwdi directly'
+)
+
+option('debug_logging',
+    type: 'boolean',
+    value: false,
+    description: 'enable debug logging from libwdi directly'
+)
