@@ -38,8 +38,9 @@
 #include "zadig_resource.h"
 
 #if defined(__MINGW32__)
-// #define INetworkListManager_get_IsConnectedToInternet INetworkListManager_IsConnectedToInternet
 #define INetworkListManager_get_IsConnectedToInternet(This,pbIsConnected) (This)->lpVtbl->IsConnectedToInternet(This,pbIsConnected)
+#elif defined(_MSC_VER)
+#define INetworkListManager_get_IsConnectedToInternet(This,pbIsConnected) (This)->lpVtbl->get_IsConnectedToInternet(This,pbIsConnected)
 #endif
 
 /* Maximum download chunk size, in bytes */
