@@ -12,7 +12,11 @@ host_compiler = meson.get_compiler('c', native: false)
 host_is_w64 = (host_compiler.get_define('__WIN64__') == '1' or host_compiler.get_define('_M_X64') != '')
 host_is_arm64 = host_compiler.get_define('_M_ARM64') == '1'
 
-libwdi_inc = include_directories(['libwdi'])
+libwdi_inc = [include_directories(['libwdi'])]
+
+if host_compiler.get_id() == 'msvc'
+    libwdi_inc += include_directories(['msvc'])
+endif
 
 ## Create config.h, autotools header
 conf_data = configuration_data()
@@ -112,9 +116,19 @@ installer = executable(installer_name,
 # The embedder needs to run on the build machine: this program creates a header
 # file that is the binary contents of the driver to install.
 embedder_options = [
-    '-DSRCDIR="' + meson.current_source_dir() / 'libwdi"',
-    '-DSOLUTIONDIR="' + meson.current_build_dir() + '"',
+    '-DSRCDIR="' + meson.project_source_root() / 'libwdi"',
+    '-DSOLUTIONDIR="' + meson.project_build_root() + '"',
 ]
+
+# this is just to issue a build warning... meson version of the build will
+# fail to execute from a 32-bit build machine.
+if host_compiler.get_id() == 'msvc'
+    if host_is_w64 or host_is_arm64
+        embedder_options += '-DBUILD64'
+    else
+        embedder_options += '-DNO_BUILD64'
+    endif
+endif
 
 embedder = executable('embedder',
     files(
@@ -213,6 +227,9 @@ if get_option('build_examples')
         [
             files(
                 'examples' / 'wdi-simple.c',
+                # getopt only used here, compiling it together w/ libwdi_simple
+                'examples' / 'getopt' / 'getopt1.c',
+                'examples' / 'getopt' / 'getopt.c'
             )
         ],
         include_directories: [libwdi_inc, examples_inc],
