@@ -2,17 +2,17 @@
 project(
     'libwdi',
     'c',
-    version: '1.4.1',
+    version: '1.5.0',
 )
 
 windows = import('windows')
 
 build_compiler = meson.get_compiler('c', native: true)
 host_compiler = meson.get_compiler('c', native: false)
-host_is_w64 = (host_compiler.get_define('__WIN64__') == '1')
+host_is_w64 = (host_compiler.get_define('__WIN64__') == '1' or host_compiler.get_define('_M_X64') != '')
+host_is_arm64 = host_compiler.get_define('_M_ARM64') == '1'
 
 libwdi_inc = include_directories(['libwdi'])
-
 
 ## Create config.h, autotools header
 conf_data = configuration_data()
@@ -25,12 +25,13 @@ foreach header : ['dlfcn', 'inttypes', 'stdint', 'stdio', 'stdlib', 'strings', '
 endforeach
 
 conf_data.set_quoted('package_name', 'libwdi')
-# TODO this version is wrong, but it is what is packaged at tag v1.4.1
-conf_data.set_quoted('version', '1.3.1')
+conf_data.set_quoted('version', meson.project_version())
 conf_data.set('wdf_ver', get_option('wdf_ver'))
 # mesondefine will def/undef these correctly
-if host_is_w64
+if host_is_w64 and not host_is_arm64
     conf_data.set('OPT_M64', true)
+elif host_is_arm64
+    conf_data.set('OPT_ARM64', true)
 else
     conf_data.set('OPT_M32', true)
 endif
@@ -40,7 +41,9 @@ embed_driver_options = {
     'libusbk': get_option('libusbk_path'),
     'libusb0': get_option('libusb0_path'),
     'wdk': get_option('winusb_path'),
-    'coinstaller': get_option('wdk_x64_path'),
+    'x64': get_option('wdk_x64_path'),
+    # TODO what does this do on win10? options are "wdf" or "winusb".
+    'coinstaller': 'wdf',
     'user': get_option('user_path'),
 }
 
@@ -84,7 +87,7 @@ embedder_options = [
 
 embedder = executable('embedder',
     files(
-        'libwdi/embedder.c',
+        'libwdi' / 'embedder.c',
     ),
     include_directories: libwdi_inc,
     c_args: embedder_options,
@@ -102,19 +105,20 @@ embedded_h = custom_target(
     command: [embedder, '@OUTPUT@'],
     depends: [installer]
 )
+embedded_h_dep = declare_dependency(sources: embedded_h)
 
 # windows resource file defines exported symbols of libwdi
-libwdi_winres = windows.compile_resources(files('libwdi/libwdi.rc'))
+libwdi_winres = windows.compile_resources(files('libwdi'/ 'libwdi.rc'))
 
 libwdi = library('wdi',
     [
         files(
-            'libwdi/libwdi.c',
-            'libwdi/logging.c',
-            'libwdi/tokenizer.c',
-            'libwdi/libwdi_dlg.c',
-            'libwdi/pki.c',
-            'libwdi/vid_data.c',
+            'libwdi' / 'libwdi.c',
+            'libwdi' / 'logging.c',
+            'libwdi' / 'tokenizer.c',
+            'libwdi' / 'libwdi_dlg.c',
+            'libwdi' / 'pki.c',
+            'libwdi' / 'vid_data.c',
         ),
         embedded_h,
         libwdi_winres
@@ -123,56 +127,68 @@ libwdi = library('wdi',
         '-lsetupapi',
         '-lole32',
         '-lntdll',
+        '-lnewdev',
     ],
-    dependencies: [config_header_dep],
+    dependencies: [config_header_dep, embedded_h_dep],
     include_directories: libwdi_inc
 )
 
+libwdi_dep = declare_dependency(
+    link_with: libwdi,
+    include_directories: libwdi_inc
+)
 
 ## Examples
+if get_option('build_examples')
+    examples_inc = include_directories('examples')
 
-examples_inc = include_directories('examples')
+    ## Zadig
 
-## Zadig
+    # Graphical frontend for libwdi
 
-# Graphical frontend for libwdi
+    zadig_winres = windows.compile_resources(files('examples' / 'zadig.rc'))
 
-zadig_winres = windows.compile_resources(files('examples/zadig.rc'))
+    zadig = executable('zadig',
+        [
+            files(
+                'examples' / 'zadig.c',
+                'examples' / 'zadig_net.c',
+                'examples' / 'zadig_parser.c',
+                'examples' / 'zadig_stdlg.c',
+                'examples' / 'profile.c',
+            ),
+            zadig_winres,
+        ],
+        link_args: [
+            '-lsetupapi',
+            '-lcomctl32',
+            '-lwininet',
+            '-lntdll',
+            '-luuid',
+            '-lole32',
+        ],
+        include_directories: [libwdi_inc, examples_inc],
+        link_with: libwdi,
+        gui_app: true,
+    )
 
-zadig = executable('zadig',
-    [
-        files(
-            'examples/zadig.c',
-            'examples/zadig_net.c',
-            'examples/zadig_parser.c',
-            'examples/zadig_stdlg.c',
-            'examples/profile.c',
-        ),
-        zadig_winres,
-    ],
-    link_args: [
-        '-lwininet',
-        '-luuid',
-        '-lcomctl32',
-    ],
-    include_directories: [libwdi_inc, examples_inc],
-    link_with: libwdi,
-    gui_app: true,
-)
+    ## libwdi-simple
 
-## libwdi-simple
+    # console based frontend for libwdi
 
-# console based frontend for libwdi
+    libwdi_simple_winres = windows.compile_resources(files('examples' / 'wdi-simple.rc'))
 
-libwdi_simple_winres = windows.compile_resources(files('examples/wdi-simple.rc'))
-
-libwdi_simple = executable('libwdi_simple',
-    [
-        files(
-            'examples/wdi-simple.c',
-        )
-    ],
-    include_directories: [libwdi_inc, examples_inc],
-    link_with: libwdi,
-    gui_app: false
-)
+    libwdi_simple = executable('libwdi_simple',
+        [
+            files(
+                'examples' / 'wdi-simple.c',
+            )
+        ],
+        include_directories: [libwdi_inc, examples_inc],
+        link_with: libwdi,
+        link_args: [
+            '-lsetupapi'
+        ],
+        gui_app: false
+    )
+endif

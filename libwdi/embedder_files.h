@@ -125,6 +125,9 @@ struct emb embeddable_fixed[] = {
 #if defined(OPT_M64)
 	{ 0, INSTALLER_PATH_64 "\\installer_x64.exe", "." },
 #endif
+#if defined(OPT_ARM)
+	{ 0, INSTALLER_PATH_ARM "\\installer_arm64.exe", "." },
+#endif
 // inf templates for the tokenizer ("" directory means no extraction)
 	{ 0, SRCDIR "\\winusb.inf.in", "" },
 	{ 0, SRCDIR "\\libusb0.inf.in", "" },
