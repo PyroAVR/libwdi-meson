@@ -45,3 +45,16 @@ option('debug_logging',
     value: false,
     description: 'enable debug logging from libwdi directly'
 )
+
+option('build_examples',
+    type: 'boolean',
+    value: true,
+    description: 'build example apps libwdi_simple and Zadig'
+)
+
+option('installer_use_elevation',
+  type: 'boolean',
+  value: false,
+  description: 'Create and embed a manifest into the libwdi installer which
+requests that it be run with an Administrator access token'
+)

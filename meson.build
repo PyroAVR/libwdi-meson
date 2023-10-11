@@ -63,17 +63,48 @@ config_header_dep = declare_dependency(sources: config_header)
 
 ## Installer
 
+installer_name = 'installer_'
+if host_is_w64
+    installer_name += 'x64'
+elif host_is_arm64
+    installer_name += 'arm64'
+else
+    installer_name += 'x32'
+endif
+
+installer_sources = [files('libwdi' / 'installer.c')]
+installer_deps = [config_header_dep]
+
+if get_option('installer_use_elevation')
+    # Embed a windows resource file into the libwdi-installer, to cause it to
+    # run with elevated privileges by default.
+    ins_winres_cfg = configuration_data()
+    ins_winres_cfg.set('version', meson.project_version())
+    ins_winres_cfg.set('installer_name', installer_name)
+    ins_winres_cfg.set('elevation_manifest_path', meson.project_source_root() / 'elevation.manifest')
+    ins_winres_file = configure_file(
+        input: 'installer.rc.in.meson',
+        output: 'installer.rc',
+        configuration: ins_winres_cfg
+    )
+    installer_winres = windows.compile_resources(ins_winres_file)
+    installer_winres_dep = declare_dependency(sources: installer_winres)
+
+    installer_sources += installer_winres
+    installer_deps += installer_winres_dep
+endif
+
 # Installer runs on the host machine, but is required to build the embedder,
 # since it is part of the embedded contents.
-installer = executable('installer_' + (host_is_w64 ? 'x64':'x32'),
-    files('libwdi/installer.c'),
+installer = executable(installer_name,
+    installer_sources,
     include_directories: libwdi_inc,
     link_args: [
         '-lsetupapi',
         '-lnewdev',
         '-lole32',
     ],
-    dependencies: [config_header_dep],
+    dependencies: installer_deps,
 )
 
 ## Embedder
