@@ -36,14 +36,18 @@ option('wdf_ver',
 
 option('logging',
     type: 'boolean',
-    value: false,
-    description: 'enable logging from libwdi directly'
+    value: true,
+    description: 'Enable logging facilities within libwdi'
 )
 
 option('debug_logging',
-    type: 'boolean',
-    value: false,
-    description: 'enable debug logging from libwdi directly'
+    type: 'combo',
+    choices: ['disallowed', 'allowed', 'forced'],
+    value: 'disallowed',
+    description: '''
+Include facilities for debug logging in libwdi via wdi_set_log_level when set to
+"allowed". Pin logging level to maximum verbosity when set to "forced".
+'''
 )
 
 option('build_examples',
@@ -55,6 +59,8 @@ option('build_examples',
 option('installer_use_elevation',
   type: 'boolean',
   value: false,
-  description: 'Create and embed a manifest into the libwdi installer which
-requests that it be run with an Administrator access token'
+  description: '''
+Create and embed a manifest into the libwdi installer which
+requests that it be run with an Administrator access token
+'''
 )

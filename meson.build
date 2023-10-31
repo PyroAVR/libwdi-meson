@@ -20,9 +20,16 @@ endif
 
 ## Create config.h, autotools header
 conf_data = configuration_data()
-conf_data.set10('logging', get_option('logging'))
-# these two flags appear to be redundant
-conf_data.set10('debug_logging', get_option('debug_logging'))
+if get_option('logging')
+    conf_data.set('ENABLE_LOGGING')
+endif
+
+if get_option('debug_logging') == 'allowed'
+    conf_data.set('INCLUDE_DEBUG_LOGGING')
+elif get_option('debug_logging') == 'forced'
+    conf_data.set('INCLUDE_DEBUG_LOGGING')
+    conf_data.set('ENABLE_DEBUG_LOGGING')
+endif
 
 foreach header : ['dlfcn', 'inttypes', 'stdint', 'stdio', 'stdlib', 'strings', 'string', 'sys_stat', 'sys_types', 'unistd']
     conf_data.set10(header, host_compiler.has_header(header + '.h'))

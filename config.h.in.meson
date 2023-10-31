@@ -4,10 +4,10 @@
 #mesondefine COINSTALLER_DIR
 
 /* Debug message logging (forced) */
-#define ENABLE_DEBUG_LOGGING @debug_logging@
+#mesondefine ENABLE_DEBUG_LOGGING
 
 /* Message logging */
-#define ENABLE_LOGGING @logging@
+#mesondefine ENABLE_LOGGING
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H @dlfcn@
@@ -40,7 +40,7 @@
 #define HAVE_UNISTD_H @unistd@
 
 /* Debug message logging (toggable) */
-#define INCLUDE_DEBUG_LOGGING @debug_logging@
+#mesondefine INCLUDE_DEBUG_LOGGING
 
 /* embed libusb0 driver files from the following location */
 #mesondefine LIBUSB0_DIR
